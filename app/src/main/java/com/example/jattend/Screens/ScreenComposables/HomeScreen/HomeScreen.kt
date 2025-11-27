@@ -5,7 +5,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,9 +36,11 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +55,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.text.isDigitsOnly
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -80,6 +87,12 @@ fun HomeScreen(navController: NavController = rememberNavController() , viewMode
     var present by remember{
         mutableStateOf("")
     }
+    var isDialog by remember {
+        mutableStateOf(false)
+    }
+    var toDelete by remember {
+        mutableStateOf("")
+    }
     val context = LocalContext.current
     Scaffold(modifier = Modifier.fillMaxSize() , topBar = {
         TopAppBar(
@@ -91,9 +104,18 @@ fun HomeScreen(navController: NavController = rememberNavController() , viewMode
         Button(onClick = {
             if(!isAdd) isAdd = true
         } , shape = CircleShape) {
-            Icon(imageVector = Icons.Default.Add ,  contentDescription = "AddSubject" , modifier = Modifier.padding(horizontal = 2.dp , vertical = 8.dp))
+            Icon(imageVector = Icons.Default.Add  ,  contentDescription = "AddSubject" , modifier = Modifier.padding(horizontal = 2.dp , vertical = 8.dp))
         }
     }) { ip ->
+        if (isDialog && toDelete.trim().isNotEmpty()){
+           DelDialog({
+           viewModel.deleteSubject(toDelete)
+               toDelete = ""
+               isDialog = false
+           }) {
+               isDialog = false
+           }
+        }
         Log.d("tag" , subjects.toString())
         Column(modifier = Modifier
             .fillMaxSize()
@@ -105,6 +127,9 @@ fun HomeScreen(navController: NavController = rememberNavController() , viewMode
                  navController.navigate(DetailsScreen(it))
              } , onPresent = { it , present , total ->
                       viewModel.addPresent(it , present+1 , total +1)
+             } , onLongClick = {
+                 isDialog = true
+                 toDelete = subject.id
              } , onTotal = { it , total ->
                   viewModel.addTotal(it , total+1)
              }
@@ -149,13 +174,19 @@ fun HomeScreen(navController: NavController = rememberNavController() , viewMode
 }
 
 @Composable
-fun ShowSubject(subject : Subject = Subject("" , "Marketing Management" , 74 , 46) , onSubjectClick : (String) -> Unit = {}  , onPresent : (String , Int ,Int) ->Unit , onTotal : (String , Int) -> Unit ){
+fun ShowSubject(subject : Subject = Subject("" , "Marketing Management" , 74 , 46) , onSubjectClick : (String) -> Unit = {}  , onPresent : (String , Int ,Int) ->Unit , onLongClick :() -> Unit , onTotal : (String , Int) -> Unit ){
     val colors = listOf(Color.Cyan , Purple40 , Color.Magenta , Color.Gray , Color.Green)
-    val color = colors.random()
+    var color = colors.random()
     val per = String.format ( "%.2f",(subject.present + 0.0)/subject.total * 100)
     Row(modifier = Modifier
         .fillMaxWidth()
-        .clickable { onSubjectClick(subject.id) }, verticalAlignment = Alignment.CenterVertically ,
+        .combinedClickable(
+            onClick = {
+                onSubjectClick(subject.id)
+            }, onLongClick = {
+             onLongClick()
+            }
+        ), verticalAlignment = Alignment.CenterVertically ,
          horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween) {
         Box(modifier = Modifier.background(color)){
             Icon(painter = painterResource(R.drawable.book_2_24px) , contentDescription = "book", modifier = Modifier
@@ -178,5 +209,31 @@ fun ShowSubject(subject : Subject = Subject("" , "Marketing Management" , 74 , 4
         IconButton(onClick = {onTotal(subject.id , subject.total)} ,  colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Red , contentColor = Color.White)) {
             Icon(imageVector = Icons.Default.Clear , contentDescription = "absent")
         }
+    }
+}
+@Preview
+@Composable
+fun DelDialog(onDeleteClick : () -> Unit = {} , onCancelClick :() ->Unit = {}){
+    Dialog(onDismissRequest = {}) {
+       Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(12.dp) ,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Do you want to delete?" , fontSize = 20.sp)
+        }
+           Row(modifier = Modifier.fillMaxWidth().padding(6.dp) , horizontalArrangement = Arrangement.SpaceAround) {
+               TextButton(onClick = {
+                   onCancelClick()
+               }) {
+                   Text(text = "Cancel")
+               }
+               TextButton(onClick = {
+                   onDeleteClick()
+               }) {
+                   Text(text = "Delete")
+               }
+           }
+       }
     }
 }

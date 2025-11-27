@@ -1,7 +1,6 @@
 package com.example.jattend.Screens.ScreenComposables.DetailsScreen
 
-import android.widget.Button
-import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

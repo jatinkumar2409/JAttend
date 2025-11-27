@@ -2,8 +2,10 @@ package com.example.jattend.Screens.ScreenComposables.HomeScreen
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.jattend.ui.theme.Purple40
 import com.example.jattend.utils.Subject
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -67,4 +69,15 @@ class HomeScreenViewModel : ViewModel() {
             }
         }
     }
-}
+    fun deleteSubject(id : String){
+        firestore.collection("users").whereEqualTo("email" , auth.currentUser?.email).get().addOnSuccessListener { it ->
+            for ( i in it) {
+             i.reference.collection("subjects").document(id).delete().addOnSuccessListener {
+                 val index = _subjects.indexOfFirst { it.id == id }
+                 _subjects.removeAt(index)
+             }
+            }
+        }
+            }
+    }
+
